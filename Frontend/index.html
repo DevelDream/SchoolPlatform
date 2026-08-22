@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Школьная платформа</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Левая панель -->
+        <aside class="sidebar-left">
+            <nav>
+                <button class="nav-btn active" data-page="profile">
+                    <span class="icon">👤</span> Я
+                </button>
+                <button class="nav-btn" data-page="diary">
+                    <span class="icon">📅</span> Дневник
+                </button>
+                <button class="nav-btn" data-page="class">
+                    <span class="icon">👥</span> Класс
+                </button>
+                <button class="nav-btn" data-page="settings">
+                    <span class="icon">⚙️</span> Настройки
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="widget-btn">✏️</button>
+            </div>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="pageTitle">Профиль</h1>
+            </header>
+
+            <section class="content-area" id="contentArea">
+                <!-- Страницы загружаются сюда -->
+            </section>
+
+            <footer class="bottom-bar"></footer>
+        </main>
+
+        <!-- Правая панель -->
+        <aside class="sidebar-right" id="rightSidebar">
+            <!-- Контекстные кнопки -->
+        </aside>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="dayModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalDate"></h2>
+            <p id="modalSuccess"></p>
+            <div id="chartContainer" class="chart-container"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/diary.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
