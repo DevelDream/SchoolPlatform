@@ -1,4 +1,4 @@
-﻿// profile.js — Mouse Events Drag & Drop
+﻿// profile.js — ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (с transform)
 
 class ProfileRenderer {
     constructor(containerId) {
@@ -252,8 +252,8 @@ class ProfileRenderer {
                 const rect = el.getBoundingClientRect();
                 const parentRect = parent.getBoundingClientRect();
                 this.layouts.user[id] = {
-                    x: rect.left - parentRect.left,
-                    y: rect.top - parentRect.top,
+                    x: parseFloat(el.style.left) || 0,
+                    y: parseFloat(el.style.top) || 0,
                     width: rect.width,
                     height: rect.height,
                     order: Array.from(parent.children).indexOf(el)
@@ -336,8 +336,11 @@ class ProfileRenderer {
         const grid = document.getElementById('editGrid');
         const exitBtn = document.getElementById('exitEditBtn');
 
+        console.log('🔍 Найдено элементов:', elements.length);
+        console.log('🔍 Найдено ручек:', handles.length);
+
         if (this.isEditMode) {
-            // Включаем
+            // ВКЛЮЧАЕМ
             elements.forEach(el => el.classList.add('editing'));
             handles.forEach(h => h.style.display = 'flex');
 
@@ -346,9 +349,14 @@ class ProfileRenderer {
             document.body.style.overflow = 'hidden';
 
             this.enableDragging();
+            // ДОБАВЛЯЕМ ПРОВЕРКУ
+            console.log('🔍 Ручки после enableDragging:', document.querySelectorAll('.drag-handle').length);
+            document.querySelectorAll('.drag-handle').forEach(h => {
+                console.log('Ручка:', h, 'слушатели:', h._listeners);
+            });
             console.log('✏️ Режим редактирования включён');
         } else {
-            // Выключаем
+            // ВЫКЛЮЧАЕМ
             elements.forEach(el => el.classList.remove('editing'));
             handles.forEach(h => h.style.display = 'none');
 
@@ -364,42 +372,78 @@ class ProfileRenderer {
     }
 
     // ============================================================
-    //  MOUSE DRAG & DROP
+    //  MOUSE DRAG & DROP (с transform)
+    // ============================================================
+    // ============================================================
+    //  MOUSE DRAG & DROP (ПРОСТОЕ И НАДЁЖНОЕ РЕШЕНИЕ)
     // ============================================================
     enableDragging() {
         const handles = document.querySelectorAll('.drag-handle');
+        console.log('🔧 enableDragging вызван, найдено ручек:', handles.length);
+
+        // Удаляем старые обработчики, чтобы не было дублирования
+        this.disableDragging();
+
+        // Создаём привязку к this
+        this._boundOnMouseDown = this._onMouseDown.bind(this);
+
         handles.forEach(handle => {
-            handle.addEventListener('mousedown', this._onMouseDown.bind(this));
+            handle.addEventListener('mousedown', this._boundOnMouseDown);
+            handle.style.cursor = 'grab';
         });
-        document.addEventListener('mousemove', this._onMouseMove.bind(this));
-        document.addEventListener('mouseup', this._onMouseUp.bind(this));
+
+        // Сохраняем ссылки на обработчики для удаления
+        this._boundOnMouseMove = this._onMouseMove.bind(this);
+        this._boundOnMouseUp = this._onMouseUp.bind(this);
     }
 
     disableDragging() {
         const handles = document.querySelectorAll('.drag-handle');
         handles.forEach(handle => {
-            handle.removeEventListener('mousedown', this._onMouseDown);
+            if (this._boundOnMouseDown) {
+                handle.removeEventListener('mousedown', this._boundOnMouseDown);
+            }
+            handle.style.cursor = '';
         });
-        document.removeEventListener('mousemove', this._onMouseMove);
-        document.removeEventListener('mouseup', this._onMouseUp);
+        if (this._boundOnMouseMove) {
+            document.removeEventListener('mousemove', this._boundOnMouseMove);
+        }
+        if (this._boundOnMouseUp) {
+            document.removeEventListener('mouseup', this._boundOnMouseUp);
+        }
+        this.isDragging = false;
+        this.draggedElement = null;
     }
 
     _onMouseDown(e) {
+        e.preventDefault();
+        console.log('🖱️ mousedown сработал!');
+
         const handle = e.target.closest('.drag-handle');
-        if (!handle) return;
+        if (!handle) {
+            console.log('❌ Ручка не найдена');
+            return;
+        }
 
         this.draggedElement = handle.closest('.draggable-element');
-        if (!this.draggedElement) return;
+        if (!this.draggedElement) {
+            console.log('❌ Блок не найден');
+            return;
+        }
 
         this.isDragging = true;
-        this.dragOffsetX = e.clientX - this.draggedElement.getBoundingClientRect().left;
-        this.dragOffsetY = e.clientY - this.draggedElement.getBoundingClientRect().top;
+        const rect = this.draggedElement.getBoundingClientRect();
+        this.dragOffsetX = e.clientX - rect.left;
+        this.dragOffsetY = e.clientY - rect.top;
 
         this.draggedElement.style.cursor = 'grabbing';
         this.draggedElement.classList.add('dragging');
         this.draggedElement.style.zIndex = '1000';
 
-        e.preventDefault();
+        document.addEventListener('mousemove', this._boundOnMouseMove);
+        document.addEventListener('mouseup', this._boundOnMouseUp);
+
+        console.log('🖱️ Начало перетаскивания:', this.draggedElement.id || this.draggedElement.dataset.element);
     }
 
     _onMouseMove(e) {
@@ -409,19 +453,16 @@ class ProfileRenderer {
         if (!parent) return;
 
         const parentRect = parent.getBoundingClientRect();
+        const elRect = this.draggedElement.getBoundingClientRect();
+
         let x = e.clientX - parentRect.left - this.dragOffsetX;
         let y = e.clientY - parentRect.top - this.dragOffsetY;
 
-        // Ограничиваем, чтобы не выходил за пределы
-        const elRect = this.draggedElement.getBoundingClientRect();
         x = Math.max(0, Math.min(x, parentRect.width - elRect.width));
         y = Math.max(0, Math.min(y, parentRect.height - elRect.height));
 
-        this.draggedElement.style.position = 'absolute';
-        this.draggedElement.style.left = x + 'px';
-        this.draggedElement.style.top = y + 'px';
-        this.draggedElement.style.width = elRect.width + 'px';
-        this.draggedElement.style.height = elRect.height + 'px';
+        this.draggedElement.style.transform = `translate(${x}px, ${y}px)`;
+        this.draggedElement.style.position = 'relative';
     }
 
     _onMouseUp(e) {
@@ -429,9 +470,32 @@ class ProfileRenderer {
             this.draggedElement.style.cursor = '';
             this.draggedElement.classList.remove('dragging');
             this.draggedElement.style.zIndex = '';
-            this.draggedElement = null;
+            console.log('🖱️ Перетаскивание завершено');
+
+            const id = this.draggedElement.id || this.draggedElement.dataset.element;
+            if (id) {
+                const transform = this.draggedElement.style.transform;
+                const match = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+                if (match) {
+                    const x = parseFloat(match[1]);
+                    const y = parseFloat(match[2]);
+                    const rect = this.draggedElement.getBoundingClientRect();
+
+                    if (!this.layouts.user[id]) this.layouts.user[id] = {};
+                    this.layouts.user[id].x = x;
+                    this.layouts.user[id].y = y;
+                    this.layouts.user[id].width = rect.width;
+                    this.layouts.user[id].height = rect.height;
+                    this.saveLayouts();
+                    console.log(`💾 Позиция сохранена для: ${id} (${x}, ${y})`);
+                }
+            }
         }
         this.isDragging = false;
+        this.draggedElement = null;
+
+        document.removeEventListener('mousemove', this._boundOnMouseMove);
+        document.removeEventListener('mouseup', this._boundOnMouseUp);
     }
 
     // ============================================================

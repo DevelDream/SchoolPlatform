@@ -1,4 +1,4 @@
-﻿// app.js — БЕЗ IMPORT
+﻿// app.js — ФИНАЛЬНАЯ ВЕРСИЯ (полная свобода перемещения)
 
 class App {
     constructor() {
@@ -12,7 +12,6 @@ class App {
             btn.addEventListener('click', () => {
                 const page = btn.dataset.page;
                 this.loadPage(page);
-
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             });
@@ -27,9 +26,8 @@ class App {
         switch (page) {
             case 'profile':
                 title.textContent = 'Профиль';
-                // ИСПОЛЬЗУЕМ ProfileRenderer
-                const profileRenderer = new ProfileRenderer('contentArea');
-                await profileRenderer.render();
+                window.profileRenderer = new ProfileRenderer('contentArea');
+                await window.profileRenderer.render();
                 break;
             case 'diary':
                 title.textContent = 'Дневник';
@@ -46,9 +44,6 @@ class App {
         }
     }
 
-    // ========================================
-    // ДНЕВНИК
-    // ========================================
     async renderDiary(container) {
         try {
             container.innerHTML = `<div id="diaryContainer">Загрузка...</div>`;
@@ -59,9 +54,6 @@ class App {
         }
     }
 
-    // ========================================
-    // КЛАСС
-    // ========================================
     async renderClass(container) {
         try {
             const students = await api.getStudents(7, 'А');
@@ -83,7 +75,6 @@ class App {
                     `).join('')}
                 </div>
             `;
-
             container.querySelectorAll('.student-card').forEach(card => {
                 card.addEventListener('click', async () => {
                     const id = card.dataset.id;
@@ -104,9 +95,6 @@ class App {
         }
     }
 
-    // ========================================
-    // НАСТРОЙКИ
-    // ========================================
     renderSettings(container) {
         container.innerHTML = `
             <div class="settings-card">
@@ -138,91 +126,142 @@ class App {
     }
 }
 
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 let diary;
 let app;
 
-document.addEventListener('DOMContentLoaded', () => {
+// ========================================
+// ПЕРЕТАСКИВАНИЕ (ПОЛНАЯ СВОБОДА)
+// ========================================
+
+function enableDragAndDrop() {
+    console.log('🔄 enableDragAndDrop вызван');
+
+    const handles = document.querySelectorAll('.drag-handle');
+    if (handles.length === 0) {
+        console.log('⚠️ Ручки не найдены, ждём...');
+        setTimeout(enableDragAndDrop, 300);
+        return;
+    }
+
+    console.log('🔧 Найдено ручек:', handles.length);
+
+    handles.forEach(el => {
+        const newEl = el.cloneNode(true);
+        el.parentNode.replaceChild(newEl, el);
+    });
+
+    const newHandles = document.querySelectorAll('.drag-handle');
+    let draggedEl = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    newHandles.forEach(handle => {
+        handle.addEventListener('mousedown', function (e) {
+            const isEditMode = document.querySelector('.draggable-element.editing') !== null;
+            if (!isEditMode) {
+                console.log('⚠️ Режим редактирования выключен — перетаскивание запрещено');
+                return;
+            }
+
+            e.preventDefault();
+            draggedEl = this.closest('.draggable-element');
+            if (!draggedEl) return;
+
+            const rect = draggedEl.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            draggedEl.style.cursor = 'grabbing';
+            draggedEl.style.zIndex = '9999';
+            draggedEl.classList.add('dragging');
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+            console.log('🖱️ Перетаскивание начато:', draggedEl.id || draggedEl.dataset.element);
+        });
+    });
+
+    function onMove(e) {
+        if (!draggedEl) return;
+
+        const isEditMode = document.querySelector('.draggable-element.editing') !== null;
+        if (!isEditMode) return;
+
+        const parent = draggedEl.parentElement;
+        if (!parent) return;
+
+        const parentRect = parent.getBoundingClientRect();
+        const elRect = draggedEl.getBoundingClientRect();
+
+        // ПОЛНАЯ СВОБОДА ПЕРЕМЕЩЕНИЯ
+        let x = e.clientX - parentRect.left - offsetX;
+        let y = e.clientY - parentRect.top - offsetY;
+
+        // ❌ НЕТ ОГРАНИЧЕНИЙ — можно двигать куда угодно
+        // x = Math.max(0, Math.min(x, parentRect.width - elRect.width));
+        // y = Math.max(0, Math.min(y, parentRect.height - elRect.height));
+
+        draggedEl.style.transform = `translate(${x}px, ${y}px)`;
+        draggedEl.style.position = 'relative';
+    }
+
+    function onUp(e) {
+        if (draggedEl) {
+            draggedEl.style.cursor = '';
+            draggedEl.classList.remove('dragging');
+            draggedEl.style.zIndex = '';
+            console.log('🖱️ Перетаскивание завершено');
+        }
+        draggedEl = null;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+    }
+}
+
+function toggleEditModeGlobal() {
+    console.log('🔄 toggleEditModeGlobal вызван');
+
+    const elements = document.querySelectorAll('.draggable-element');
+    const handles = document.querySelectorAll('.drag-handle');
+    const grid = document.getElementById('editGrid');
+    const exitBtn = document.getElementById('exitEditBtn');
+
+    const isEditMode = document.querySelector('.draggable-element.editing') !== null;
+
+    if (isEditMode) {
+        // ВЫКЛЮЧАЕМ
+        elements.forEach(el => el.classList.remove('editing'));
+        handles.forEach(h => h.style.display = 'none');
+        if (grid) { grid.classList.remove('active'); grid.style.display = 'none'; }
+        if (exitBtn) exitBtn.style.display = 'none';
+        document.body.style.overflow = '';
+        console.log('🔒 Режим редактирования выключен');
+    } else {
+        // ВКЛЮЧАЕМ
+        elements.forEach(el => el.classList.add('editing'));
+        handles.forEach(h => h.style.display = 'flex');
+        if (grid) { grid.style.display = 'block'; grid.classList.add('active'); }
+        if (exitBtn) exitBtn.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        console.log('✏️ Режим редактирования включён');
+
+        setTimeout(enableDragAndDrop, 100);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
     app = new App();
 
-    // ДОБАВЛЯЕМ СЕТКУ ПРИ ЗАГРУЗКЕ
-    document.addEventListener('DOMContentLoaded', function () {
-        // Создаём сетку
-        const grid = document.createElement('div');
-        grid.id = 'editGrid';
-        grid.style.cssText = `
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        background-image: linear-gradient(rgba(100, 200, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.1) 1px, transparent 1px) !important;
-        background-size: 60px 60px !important;
-        z-index: 999999 !important;
-        pointer-events: none !important;
-        display: none !important;
-    `;
-        document.body.appendChild(grid);
-        console.log('✅ Сетка создана автоматически');
-    });
-    // ========================================
-    // СОЗДАНИЕ СЕТКИ ДЛЯ РЕЖИМА РЕДАКТИРОВАНИЯ
-    // ========================================
+    const toggleBtn = document.getElementById('editToggleBtn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleEditModeGlobal);
+        console.log('✅ Кнопка карандаша подключена');
+    }
 
-    // Создаём сетку при загрузке
-    (function createEditGrid() {
-        // Проверяем, есть ли уже сетка
-        if (document.getElementById('editGrid')) return;
-
-        const grid = document.createElement('div');
-        grid.id = 'editGrid';
-        grid.style.cssText = `
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        background-image: linear-gradient(rgba(100, 200, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.1) 1px, transparent 1px) !important;
-        background-size: 60px 60px !important;
-        z-index: 999999 !important;
-        pointer-events: none !important;
-        display: none !important;
-    `;
-        document.body.appendChild(grid);
-        console.log('✅ Сетка создана');
-
-        // Добавляем анимацию
-        const styleSheet = document.createElement('style');
-        styleSheet.textContent = `
-        @keyframes gridMove {
-            0% { transform: translateY(-50%) translateX(-50%); opacity: 0; }
-            100% { transform: translateY(0) translateX(0); opacity: 1; }
-        }
-        #editGrid.animate-grid {
-            animation: gridMove 15s linear infinite !important;
-            display: block !important;
-        }
-    `;
-        document.head.appendChild(styleSheet);
-        console.log('✅ Анимация добавлена');
-    })();
-
-    // Функция для переключения сетки
-    window.toggleGrid = function () {
-        const g = document.getElementById('editGrid');
-        if (!g) return;
-        if (g.classList.contains('animate-grid')) {
-            g.classList.remove('animate-grid');
-            g.style.display = 'none';
-            console.log('🔒 Сетка выключена');
-        } else {
-            g.style.display = 'block';
-            g.classList.add('animate-grid');
-            console.log('✏️ Сетка включена');
-        }
-    };
+    const exitBtn = document.getElementById('exitEditBtn');
+    if (exitBtn) {
+        exitBtn.addEventListener('click', toggleEditModeGlobal);
+    }
 });
+
+console.log('✅ app.js загружен!');
