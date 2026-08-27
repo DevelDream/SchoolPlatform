@@ -1,9 +1,11 @@
-﻿const API_BASE = 'http://localhost:5069/api';
+﻿// api.js — БЕЗ IMPORT
+
+const API_BASE = 'http://localhost:5069/api';
 
 class ApiClient {
     constructor() {
-        // Реальный GUID из списка класса
-        this.userId = '6f676f8e-c084-4865-ad70-2be95a68ae14';
+        // ФИКСИРОВАННЫЙ GUID ИВАНА ПЕТРОВА
+        this.userId = '11111111-1111-1111-1111-111111111111';
     }
 
     async getProfile() {
@@ -56,4 +58,5 @@ class ApiClient {
     }
 }
 
+// СОЗДАЕМ ГЛОБАЛЬНЫЙ ЭКЗЕМПЛЯР
 const api = new ApiClient();

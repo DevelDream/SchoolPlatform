@@ -1,4 +1,6 @@
-﻿class App {
+﻿// app.js — БЕЗ IMPORT
+
+class App {
     constructor() {
         this.currentPage = 'profile';
         this.initNavigation();
@@ -25,7 +27,9 @@
         switch (page) {
             case 'profile':
                 title.textContent = 'Профиль';
-                await this.renderProfile(content);
+                // ИСПОЛЬЗУЕМ ProfileRenderer
+                const profileRenderer = new ProfileRenderer('contentArea');
+                await profileRenderer.render();
                 break;
             case 'diary':
                 title.textContent = 'Дневник';
@@ -42,54 +46,22 @@
         }
     }
 
-    async renderProfile(container) {
+    // ========================================
+    // ДНЕВНИК
+    // ========================================
+    async renderDiary(container) {
         try {
-            const data = await api.getProfile();
-            const levelMap = {
-                0: '📕 Двоечник',
-                1: '📘 Троечник',
-                2: '✨ Отличник'
-            };
-
-            container.innerHTML = `
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <img src="${data.avatarUrl}" alt="Avatar" class="avatar">
-                        <h2>${data.name}</h2>
-                        <p class="class-badge">${data.class} класс</p>
-                    </div>
-                    <div class="profile-info">
-                        <div class="info-section">
-                            <h3>Интересы</h3>
-                            <div class="tags">
-                                ${data.interests.map(i => `<span class="tag">${i}</span>`).join('')}
-                            </div>
-                        </div>
-                        <div class="info-section">
-                            <h3>Кружки</h3>
-                            <div class="tags">
-                                ${data.clubs.map(c => `<span class="tag">${c}</span>`).join('')}
-                            </div>
-                        </div>
-                        <div class="info-section">
-                            <h3>Уровень</h3>
-                            <p>${levelMap[data.level] || 'Неизвестно'}</p>
-                        </div>
-                    </div>
-                    <button class="edit-btn" onclick="app.editProfile()">✏️ Редактировать</button>
-                </div>
-            `;
+            container.innerHTML = `<div id="diaryContainer">Загрузка...</div>`;
+            diary = new DiaryRenderer('diaryContainer');
+            await diary.render();
         } catch (error) {
-            container.innerHTML = `<p style="color:red;">Ошибка: ${error.message}</p>`;
+            container.innerHTML = `<p style="color:#dc3545;">❌ Ошибка: ${error.message}</p>`;
         }
     }
 
-    async renderDiary(container) {
-        container.innerHTML = `<div id="diaryContainer"></div>`;
-        diary = new DiaryRenderer('diaryContainer');
-        await diary.render();
-    }
-
+    // ========================================
+    // КЛАСС
+    // ========================================
     async renderClass(container) {
         try {
             const students = await api.getStudents(7, 'А');
@@ -119,7 +91,7 @@
                 });
             });
         } catch (error) {
-            container.innerHTML = `<p style="color:red;">Ошибка: ${error.message}</p>`;
+            container.innerHTML = `<p style="color:#dc3545;">❌ Ошибка: ${error.message}</p>`;
         }
     }
 
@@ -132,32 +104,23 @@
         }
     }
 
-    editProfile() {
-        const name = prompt('Введите новое имя:');
-        if (name) {
-            api.updateProfile({ name })
-                .then(() => {
-                    alert('Профиль обновлен!');
-                    this.loadPage('profile');
-                })
-                .catch(error => alert('Ошибка: ' + error.message));
-        }
-    }
-
+    // ========================================
+    // НАСТРОЙКИ
+    // ========================================
     renderSettings(container) {
         container.innerHTML = `
             <div class="settings-card">
-                <h2>Настройки</h2>
+                <h2>⚙️ Настройки</h2>
                 <div class="settings-group">
-                    <h3>Тема</h3>
+                    <h3>🌗 Тема</h3>
                     <button onclick="document.body.classList.toggle('dark-theme')">
                         Переключить тему
                     </button>
                 </div>
                 <div class="settings-group">
-                    <h3>API</h3>
-                    <p>Текущий порт: ${API_BASE}</p>
-                    <button onclick="app.changeUserId()">
+                    <h3>👤 Пользователь</h3>
+                    <p>Текущий ID: ${api.userId}</p>
+                    <button onclick="app.changeUser()">
                         Сменить пользователя
                     </button>
                 </div>
@@ -165,17 +128,101 @@
         `;
     }
 
-    changeUserId() {
+    changeUser() {
         const newId = prompt('Введите новый GUID пользователя:');
         if (newId) {
             api.setUserId(newId);
-            alert('Пользователь сменен!');
+            alert('✅ Пользователь сменен!');
             this.loadPage('profile');
         }
     }
 }
 
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+let diary;
 let app;
+
 document.addEventListener('DOMContentLoaded', () => {
     app = new App();
+
+    // ДОБАВЛЯЕМ СЕТКУ ПРИ ЗАГРУЗКЕ
+    document.addEventListener('DOMContentLoaded', function () {
+        // Создаём сетку
+        const grid = document.createElement('div');
+        grid.id = 'editGrid';
+        grid.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background-image: linear-gradient(rgba(100, 200, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.1) 1px, transparent 1px) !important;
+        background-size: 60px 60px !important;
+        z-index: 999999 !important;
+        pointer-events: none !important;
+        display: none !important;
+    `;
+        document.body.appendChild(grid);
+        console.log('✅ Сетка создана автоматически');
+    });
+    // ========================================
+    // СОЗДАНИЕ СЕТКИ ДЛЯ РЕЖИМА РЕДАКТИРОВАНИЯ
+    // ========================================
+
+    // Создаём сетку при загрузке
+    (function createEditGrid() {
+        // Проверяем, есть ли уже сетка
+        if (document.getElementById('editGrid')) return;
+
+        const grid = document.createElement('div');
+        grid.id = 'editGrid';
+        grid.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background-image: linear-gradient(rgba(100, 200, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.1) 1px, transparent 1px) !important;
+        background-size: 60px 60px !important;
+        z-index: 999999 !important;
+        pointer-events: none !important;
+        display: none !important;
+    `;
+        document.body.appendChild(grid);
+        console.log('✅ Сетка создана');
+
+        // Добавляем анимацию
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+        @keyframes gridMove {
+            0% { transform: translateY(-50%) translateX(-50%); opacity: 0; }
+            100% { transform: translateY(0) translateX(0); opacity: 1; }
+        }
+        #editGrid.animate-grid {
+            animation: gridMove 15s linear infinite !important;
+            display: block !important;
+        }
+    `;
+        document.head.appendChild(styleSheet);
+        console.log('✅ Анимация добавлена');
+    })();
+
+    // Функция для переключения сетки
+    window.toggleGrid = function () {
+        const g = document.getElementById('editGrid');
+        if (!g) return;
+        if (g.classList.contains('animate-grid')) {
+            g.classList.remove('animate-grid');
+            g.style.display = 'none';
+            console.log('🔒 Сетка выключена');
+        } else {
+            g.style.display = 'block';
+            g.classList.add('animate-grid');
+            console.log('✏️ Сетка включена');
+        }
+    };
 });

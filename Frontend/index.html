@@ -3,13 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Школьная платформа</title>
+    <title>EduSync — Школьная платформа</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ========================================
+           ВОЛНОВАЯ АНИМАЦИЯ СЕТКИ (БЕЗ ГРАНИЦ)
+           ======================================== */
+
+        @keyframes waveMove {
+            0% {
+                transform: translate(0, 0);
+                opacity: 0.3;
+            }
+
+            25% {
+                transform: translate(-60px, -30px);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translate(0, -60px);
+                opacity: 0.7;
+            }
+
+            75% {
+                transform: translate(60px, -30px);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(0, 0);
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes waveMoveReverse {
+            0% {
+                transform: translate(0, 0);
+                opacity: 0.4;
+            }
+
+            25% {
+                transform: translate(60px, 30px);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translate(0, 60px);
+                opacity: 0.6;
+            }
+
+            75% {
+                transform: translate(-60px, 30px);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(0, 0);
+                opacity: 0.4;
+            }
+        }
+
+        #editGrid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999999;
+            pointer-events: none;
+            display: none;
+            overflow: hidden;
+        }
+
+            #editGrid .layer {
+                position: absolute;
+                top: -120px;
+                left: -120px;
+                right: -120px;
+                bottom: -120px;
+                width: calc(100% + 240px);
+                height: calc(100% + 240px);
+                background-image: linear-gradient(rgba(100, 200, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.08) 1px, transparent 1px);
+                background-size: 60px 60px;
+                background-repeat: repeat;
+            }
+
+            #editGrid .layer1 {
+                animation: waveMove 20s ease-in-out infinite;
+            }
+
+            #editGrid .layer2 {
+                animation: waveMoveReverse 25s ease-in-out infinite;
+                opacity: 0.5;
+                background-image: linear-gradient(rgba(100, 200, 255, 0.05) 2px, transparent 2px), linear-gradient(90deg, rgba(100, 200, 255, 0.05) 2px, transparent 2px);
+                background-size: 80px 80px;
+            }
+
+            #editGrid.active {
+                display: block !important;
+            }
+    </style>
 </head>
 <body>
+    <!-- СЕТКА С ДВУМЯ СЛОЯМИ -->
+    <div id="editGrid">
+        <div class="layer layer1"></div>
+        <div class="layer layer2"></div>
+    </div>
+
+    <!-- КНОПКА ВЫХОДА -->
+    <button id="exitEditBtn" style="
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #dc3545;
+        color: #fff;
+        border: none;
+        padding: 14px 36px;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 1000000;
+        display: none;
+        box-shadow: 0 4px 30px rgba(220,53,69,0.5);
+    ">
+        ❌ Выйти из режима редактирования
+    </button>
+
+    <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
     <div class="app-container">
-        <!-- Левая панель -->
         <aside class="sidebar-left">
+            <div class="logo">🏫</div>
             <nav>
                 <button class="nav-btn active" data-page="profile">
                     <span class="icon">👤</span> Я
@@ -25,27 +154,19 @@
                 </button>
             </nav>
             <div class="sidebar-footer">
-                <button class="widget-btn">✏️</button>
+                <button class="widget-btn" id="editToggleBtn">✏️</button>
             </div>
         </aside>
 
-        <!-- Основной контент -->
         <main class="main-content">
             <header class="top-bar">
                 <h1 id="pageTitle">Профиль</h1>
             </header>
-
-            <section class="content-area" id="contentArea">
-                <!-- Страницы загружаются сюда -->
-            </section>
-
+            <section class="content-area" id="contentArea"></section>
             <footer class="bottom-bar"></footer>
         </main>
 
-        <!-- Правая панель -->
-        <aside class="sidebar-right" id="rightSidebar">
-            <!-- Контекстные кнопки -->
-        </aside>
+        <aside class="sidebar-right" id="rightSidebar"></aside>
     </div>
 
     <!-- Модальное окно -->
@@ -60,6 +181,39 @@
 
     <script src="js/api.js"></script>
     <script src="js/diary.js"></script>
+    <script src="js/profile.js"></script>
     <script src="js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const grid = document.getElementById('editGrid');
+            const exitBtn = document.getElementById('exitEditBtn');
+            const toggleBtn = document.getElementById('editToggleBtn');
+
+            if (!grid || !exitBtn || !toggleBtn) {
+                console.error('❌ Элементы не найдены!');
+                return;
+            }
+
+            window.toggleEditMode = function () {
+                if (grid.classList.contains('active')) {
+                    grid.classList.remove('active');
+                    exitBtn.style.display = 'none';
+                    document.body.style.overflow = '';
+                    console.log('🔒 Режим редактирования выключен');
+                } else {
+                    grid.classList.add('active');
+                    exitBtn.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                    console.log('✏️ Режим редактирования включен');
+                }
+            };
+
+            toggleBtn.addEventListener('click', window.toggleEditMode);
+            exitBtn.addEventListener('click', window.toggleEditMode);
+
+            console.log('✅ Режим редактирования готов! Нажми ✏️');
+        });
+    </script>
 </body>
 </html>
