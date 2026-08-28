@@ -1,4 +1,4 @@
-﻿// profile.js — ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (с transform)
+﻿// profile.js — ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 class ProfileRenderer {
     constructor(containerId) {
@@ -12,7 +12,6 @@ class ProfileRenderer {
         this.isEditMode = false;
         this.isClassicMode = false;
 
-        // Mouse Drag
         this.draggedElement = null;
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
@@ -61,7 +60,6 @@ class ProfileRenderer {
                         <h1 class="user-name">${user.name}</h1>
                         <p class="user-school">🏫 ${user.class} класс • ${user.schoolName || 'Школа №7'}</p>
                     </div>
-                    <div class="drag-handle">↕</div>
                 </div>
 
                 <!-- О СЕБЕ -->
@@ -99,7 +97,6 @@ class ProfileRenderer {
                             </div>
                         </div>
                     </div>
-                    <div class="drag-handle">↕</div>
                 </div>
 
                 <!-- ИНТЕРЕСЫ -->
@@ -146,7 +143,6 @@ class ProfileRenderer {
                             </div>
                         </div>
                     </div>
-                    <div class="drag-handle">↕</div>
                 </div>
 
                 <!-- КРУЖКИ -->
@@ -193,7 +189,6 @@ class ProfileRenderer {
                             </div>
                         </div>
                     </div>
-                    <div class="drag-handle">↕</div>
                 </div>
 
                 <!-- КНОПКА ПЕРЕКЛЮЧЕНИЯ РЕЖИМА ИНТЕРФЕЙСА -->
@@ -332,170 +327,24 @@ class ProfileRenderer {
         this.isEditMode = !this.isEditMode;
 
         const elements = document.querySelectorAll('.draggable-element');
-        const handles = document.querySelectorAll('.drag-handle');
         const grid = document.getElementById('editGrid');
         const exitBtn = document.getElementById('exitEditBtn');
 
         console.log('🔍 Найдено элементов:', elements.length);
-        console.log('🔍 Найдено ручек:', handles.length);
 
         if (this.isEditMode) {
-            // ВКЛЮЧАЕМ
             elements.forEach(el => el.classList.add('editing'));
-            handles.forEach(h => h.style.display = 'flex');
-
             if (grid) { grid.style.display = 'block'; grid.classList.add('active'); }
             if (exitBtn) exitBtn.style.display = 'block';
             document.body.style.overflow = 'hidden';
-
-            this.enableDragging();
-            // ДОБАВЛЯЕМ ПРОВЕРКУ
-            console.log('🔍 Ручки после enableDragging:', document.querySelectorAll('.drag-handle').length);
-            document.querySelectorAll('.drag-handle').forEach(h => {
-                console.log('Ручка:', h, 'слушатели:', h._listeners);
-            });
             console.log('✏️ Режим редактирования включён');
         } else {
-            // ВЫКЛЮЧАЕМ
             elements.forEach(el => el.classList.remove('editing'));
-            handles.forEach(h => h.style.display = 'none');
-
             if (grid) { grid.classList.remove('active'); grid.style.display = 'none'; }
             if (exitBtn) exitBtn.style.display = 'none';
             document.body.style.overflow = '';
-
-            this.disableDragging();
-            this.saveUserLayout();
-
             console.log('🔒 Режим редактирования выключен');
         }
-    }
-
-    // ============================================================
-    //  MOUSE DRAG & DROP (с transform)
-    // ============================================================
-    // ============================================================
-    //  MOUSE DRAG & DROP (ПРОСТОЕ И НАДЁЖНОЕ РЕШЕНИЕ)
-    // ============================================================
-    enableDragging() {
-        const handles = document.querySelectorAll('.drag-handle');
-        console.log('🔧 enableDragging вызван, найдено ручек:', handles.length);
-
-        // Удаляем старые обработчики, чтобы не было дублирования
-        this.disableDragging();
-
-        // Создаём привязку к this
-        this._boundOnMouseDown = this._onMouseDown.bind(this);
-
-        handles.forEach(handle => {
-            handle.addEventListener('mousedown', this._boundOnMouseDown);
-            handle.style.cursor = 'grab';
-        });
-
-        // Сохраняем ссылки на обработчики для удаления
-        this._boundOnMouseMove = this._onMouseMove.bind(this);
-        this._boundOnMouseUp = this._onMouseUp.bind(this);
-    }
-
-    disableDragging() {
-        const handles = document.querySelectorAll('.drag-handle');
-        handles.forEach(handle => {
-            if (this._boundOnMouseDown) {
-                handle.removeEventListener('mousedown', this._boundOnMouseDown);
-            }
-            handle.style.cursor = '';
-        });
-        if (this._boundOnMouseMove) {
-            document.removeEventListener('mousemove', this._boundOnMouseMove);
-        }
-        if (this._boundOnMouseUp) {
-            document.removeEventListener('mouseup', this._boundOnMouseUp);
-        }
-        this.isDragging = false;
-        this.draggedElement = null;
-    }
-
-    _onMouseDown(e) {
-        e.preventDefault();
-        console.log('🖱️ mousedown сработал!');
-
-        const handle = e.target.closest('.drag-handle');
-        if (!handle) {
-            console.log('❌ Ручка не найдена');
-            return;
-        }
-
-        this.draggedElement = handle.closest('.draggable-element');
-        if (!this.draggedElement) {
-            console.log('❌ Блок не найден');
-            return;
-        }
-
-        this.isDragging = true;
-        const rect = this.draggedElement.getBoundingClientRect();
-        this.dragOffsetX = e.clientX - rect.left;
-        this.dragOffsetY = e.clientY - rect.top;
-
-        this.draggedElement.style.cursor = 'grabbing';
-        this.draggedElement.classList.add('dragging');
-        this.draggedElement.style.zIndex = '1000';
-
-        document.addEventListener('mousemove', this._boundOnMouseMove);
-        document.addEventListener('mouseup', this._boundOnMouseUp);
-
-        console.log('🖱️ Начало перетаскивания:', this.draggedElement.id || this.draggedElement.dataset.element);
-    }
-
-    _onMouseMove(e) {
-        if (!this.isDragging || !this.draggedElement) return;
-
-        const parent = this.draggedElement.parentElement;
-        if (!parent) return;
-
-        const parentRect = parent.getBoundingClientRect();
-        const elRect = this.draggedElement.getBoundingClientRect();
-
-        let x = e.clientX - parentRect.left - this.dragOffsetX;
-        let y = e.clientY - parentRect.top - this.dragOffsetY;
-
-        x = Math.max(0, Math.min(x, parentRect.width - elRect.width));
-        y = Math.max(0, Math.min(y, parentRect.height - elRect.height));
-
-        this.draggedElement.style.transform = `translate(${x}px, ${y}px)`;
-        this.draggedElement.style.position = 'relative';
-    }
-
-    _onMouseUp(e) {
-        if (this.isDragging && this.draggedElement) {
-            this.draggedElement.style.cursor = '';
-            this.draggedElement.classList.remove('dragging');
-            this.draggedElement.style.zIndex = '';
-            console.log('🖱️ Перетаскивание завершено');
-
-            const id = this.draggedElement.id || this.draggedElement.dataset.element;
-            if (id) {
-                const transform = this.draggedElement.style.transform;
-                const match = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
-                if (match) {
-                    const x = parseFloat(match[1]);
-                    const y = parseFloat(match[2]);
-                    const rect = this.draggedElement.getBoundingClientRect();
-
-                    if (!this.layouts.user[id]) this.layouts.user[id] = {};
-                    this.layouts.user[id].x = x;
-                    this.layouts.user[id].y = y;
-                    this.layouts.user[id].width = rect.width;
-                    this.layouts.user[id].height = rect.height;
-                    this.saveLayouts();
-                    console.log(`💾 Позиция сохранена для: ${id} (${x}, ${y})`);
-                }
-            }
-        }
-        this.isDragging = false;
-        this.draggedElement = null;
-
-        document.removeEventListener('mousemove', this._boundOnMouseMove);
-        document.removeEventListener('mouseup', this._boundOnMouseUp);
     }
 
     // ============================================================

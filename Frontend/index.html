@@ -1,175 +1,239 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EduSync — Школьная платформа</title>
-    <link rel="stylesheet" href="css/style.css">
+    <!-- Стили коллеги -->
+    <link rel="stylesheet" href="css/css_youtube.css" />
+    <!-- Ваши стили -->
+    <link rel="stylesheet" href="css/style.css" />
+    <!-- Linking Google fonts for icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
         /* ========================================
-           ВОЛНОВАЯ АНИМАЦИЯ СЕТКИ (БЕЗ ГРАНИЦ)
+           ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СОВМЕСТИМОСТИ
            ======================================== */
 
-        @keyframes waveMove {
-            0% {
-                transform: translate(0, 0);
-                opacity: 0.3;
-            }
+        .main-content {
+            padding: 20px 30px;
+            overflow-y: auto;
+            max-height: 100vh;
+            flex: 1;
+            background: var(--color-bg-primary);
+        }
 
-            25% {
-                transform: translate(-60px, -30px);
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--color-text-primary);
+        }
+
+        .content-area {
+            width: 100%;
+        }
+
+        /* Карточка-заглушка */
+        .welcome-card {
+            animation: fade-out 0.8s ease 3s forwards;
+        }
+
+        @keyframes fade-out {
+            from {
                 opacity: 1;
+                visibility: visible;
             }
 
-            50% {
-                transform: translate(0, -60px);
-                opacity: 0.7;
-            }
-
-            75% {
-                transform: translate(60px, -30px);
-                opacity: 1;
-            }
-
-            100% {
-                transform: translate(0, 0);
-                opacity: 0.3;
+            to {
+                opacity: 0;
+                visibility: hidden;
             }
         }
 
-        @keyframes waveMoveReverse {
-            0% {
-                transform: translate(0, 0);
-                opacity: 0.4;
-            }
-
-            25% {
-                transform: translate(60px, 30px);
-                opacity: 1;
-            }
-
-            50% {
-                transform: translate(0, 60px);
-                opacity: 0.6;
-            }
-
-            75% {
-                transform: translate(-60px, 30px);
-                opacity: 1;
-            }
-
-            100% {
-                transform: translate(0, 0);
-                opacity: 0.4;
-            }
+        /* Скрываем старую левую панель */
+        .sidebar-left {
+            display: none !important;
         }
 
+        /* Скрываем старую правую панель */
+        .sidebar-right {
+            display: none !important;
+        }
+
+        /* Модальное окно */
+        .modal {
+            z-index: 10000;
+        }
+
+        /* Сетка для редактирования */
         #editGrid {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 999999;
-            pointer-events: none;
-            display: none;
-            overflow: hidden;
+            z-index: 9999 !important;
         }
 
-            #editGrid .layer {
-                position: absolute;
-                top: -120px;
-                left: -120px;
-                right: -120px;
-                bottom: -120px;
-                width: calc(100% + 240px);
-                height: calc(100% + 240px);
-                background-image: linear-gradient(rgba(100, 200, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 200, 255, 0.08) 1px, transparent 1px);
-                background-size: 60px 60px;
-                background-repeat: repeat;
+        /* Адаптация профиля под тему */
+        .profile-header-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-hr);
+        }
+
+        .info-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-hr);
+        }
+
+        .about-section .about-content {
+            background: var(--color-bg-primary);
+        }
+
+        .tag {
+            background: var(--color-bg-primary);
+            border-color: var(--color-border-hr);
+        }
+
+        /* Адаптация дневника */
+        .diary-container {
+            background: var(--color-bg-secondary);
+        }
+
+        .diary-controls {
+            background: var(--color-bg-primary);
+        }
+
+        .diary-day {
+            background: var(--color-bg-primary);
+        }
+
+        /* Адаптация класса */
+        .student-card {
+            background: var(--color-bg-secondary);
+            border-color: var(--color-border-hr);
+        }
+
+            .student-card:hover {
+                background: var(--color-hover-secondary);
             }
 
-            #editGrid .layer1 {
-                animation: waveMove 20s ease-in-out infinite;
+        /* Настройки */
+        .settings-group {
+            background: var(--color-bg-secondary);
+            border-color: var(--color-border-hr);
+        }
+
+        /* Кнопка выхода из режима редактирования */
+        #exitEditBtn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 14px 36px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 100000;
+            box-shadow: 0 4px 30px rgba(220, 53, 69, 0.5);
+            display: none;
+        }
+
+            #exitEditBtn:hover {
+                background: #c82333;
             }
 
-            #editGrid .layer2 {
-                animation: waveMoveReverse 25s ease-in-out infinite;
-                opacity: 0.5;
-                background-image: linear-gradient(rgba(100, 200, 255, 0.05) 2px, transparent 2px), linear-gradient(90deg, rgba(100, 200, 255, 0.05) 2px, transparent 2px);
-                background-size: 80px 80px;
-            }
-
-            #editGrid.active {
-                display: block !important;
-            }
+        /* Убираем старую кнопку карандаша из левого блока */
+        .widget-btn {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
-    <!-- СЕТКА С ДВУМЯ СЛОЯМИ -->
-    <div id="editGrid">
-        <div class="layer layer1"></div>
-        <div class="layer layer2"></div>
-    </div>
+    <!-- Navbar (для мобильных) -->
+    <nav class="site-nav">
+        <button class="sidebar-toggle">
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+    </nav>
 
-    <!-- КНОПКА ВЫХОДА -->
-    <button id="exitEditBtn" style="
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #dc3545;
-        color: #fff;
-        border: none;
-        padding: 14px 36px;
-        border-radius: 50px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        z-index: 1000000;
-        display: none;
-        box-shadow: 0 4px 30px rgba(220,53,69,0.5);
-    ">
-        ❌ Выйти из режима редактирования
-    </button>
+    <div class="container">
+        <!-- Sidebar (левый блок) -->
+        <aside class="sidebar collapsed">
+            <!-- Sidebar header -->
+            <div class="sidebar-header">
+                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1; color: #4CAF50; font-size: 32px;">school</span>
+                <button class="sidebar-toggle">
+                    <span class="material-symbols-rounded">chevron_left</span>
+                </button>
+            </div>
 
-    <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
-    <div class="app-container">
-        <aside class="sidebar-left">
-            <div class="logo">🏫</div>
-            <nav>
-                <button class="nav-btn active" data-page="profile">
-                    <span class="icon">👤</span> Я
-                </button>
-                <button class="nav-btn" data-page="diary">
-                    <span class="icon">📅</span> Дневник
-                </button>
-                <button class="nav-btn" data-page="class">
-                    <span class="icon">👥</span> Класс
-                </button>
-                <button class="nav-btn" data-page="settings">
-                    <span class="icon">⚙️</span> Настройки
-                </button>
-            </nav>
+            <div class="sidebar-content">
+                <!-- Search Form -->
+                <form action="#" class="search-form">
+                    <span class="material-symbols-rounded">search</span>
+                    <input type="search" placeholder="Поиск..." required />
+                </form>
+
+                <!-- Sidebar Menu -->
+                <ul class="menu-list">
+                    <li class="menu-item">
+                        <a href="#" class="menu-link active" data-page="profile">
+                            <span class="material-symbols-rounded">account_circle</span>
+                            <span class="menu-label">Я</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" class="menu-link" data-page="diary">
+                            <span class="material-symbols-rounded">calendar_month</span>
+                            <span class="menu-label">Дневник</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" class="menu-link" data-page="class">
+                            <span class="material-symbols-rounded">group</span>
+                            <span class="menu-label">Класс</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" class="menu-link" data-page="settings">
+                            <span class="material-symbols-rounded">settings</span>
+                            <span class="menu-label">Настройки</span>
+                        </a>
+                    </li>
+                    <li class="menu-item" style="margin-top: 20px; border-top: 1px solid var(--color-border-hr); padding-top: 10px;">
+                        <a href="#" class="menu-link" id="editToggleBtn">
+                            <span class="material-symbols-rounded">edit</span>
+                            <span class="menu-label">Редактировать</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sidebar Footer -->
             <div class="sidebar-footer">
-                <button class="widget-btn" id="editToggleBtn">✏️</button>
+                <button class="theme-toggle">
+                    <div class="theme-label">
+                        <span class="theme-icon material-symbols-rounded">dark_mode</span>
+                        <span class="theme-text">Темная тема</span>
+                    </div>
+                    <div class="theme-toggle-track">
+                        <div class="theme-toggle-indicator"></div>
+                    </div>
+                </button>
             </div>
         </aside>
 
-        <main class="main-content">
-            <header class="top-bar">
-                <h1 id="pageTitle">Профиль</h1>
-            </header>
-            <section class="content-area" id="contentArea"></section>
-            <footer class="bottom-bar"></footer>
-        </main>
-
-        <aside class="sidebar-right" id="rightSidebar"></aside>
+        <!-- Site main content -->
+        <div class="main-content">
+            <h1 class="page-title" id="pageTitle">Профиль</h1>
+            <div class="content-area" id="contentArea">
+                <!-- Страницы загружаются сюда -->
+            </div>
+        </div>
     </div>
 
-    <!-- Модальное окно -->
+    <!-- Модальное окно для дневника -->
     <div id="dayModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -179,41 +243,17 @@
         </div>
     </div>
 
+    <!-- Сетка для режима редактирования -->
+    <div id="editGrid"></div>
+
+    <!-- Кнопка выхода из режима редактирования -->
+    <button id="exitEditBtn">❌ Выйти из режима редактирования</button>
+
+    <!-- Скрипты -->
+    <script src="js/js_youtube.js"></script>
     <script src="js/api.js"></script>
     <script src="js/diary.js"></script>
-    <script src="js/profile.js?v=1"></script>
+    <script src="js/profile.js"></script>
     <script src="js/app.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const grid = document.getElementById('editGrid');
-            const exitBtn = document.getElementById('exitEditBtn');
-            const toggleBtn = document.getElementById('editToggleBtn');
-
-            if (!grid || !exitBtn || !toggleBtn) {
-                console.error('❌ Элементы не найдены!');
-                return;
-            }
-
-            window.toggleEditMode = function () {
-                if (grid.classList.contains('active')) {
-                    grid.classList.remove('active');
-                    exitBtn.style.display = 'none';
-                    document.body.style.overflow = '';
-                    console.log('🔒 Режим редактирования выключен');
-                } else {
-                    grid.classList.add('active');
-                    exitBtn.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-                    console.log('✏️ Режим редактирования включен');
-                }
-            };
-
-            toggleBtn.addEventListener('click', window.toggleEditMode);
-            exitBtn.addEventListener('click', window.toggleEditMode);
-
-            console.log('✅ Режим редактирования готов! Нажми ✏️');
-        });
-    </script>
 </body>
 </html>

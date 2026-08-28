@@ -1,27 +1,22 @@
-﻿// app.js — ФИНАЛЬНАЯ ВЕРСИЯ (полная свобода перемещения)
+﻿// app.js — ИСПРАВЛЕННАЯ ВЕРСИЯ (с сохранением позиции)
 
 class App {
     constructor() {
         this.currentPage = 'profile';
-        this.initNavigation();
         this.loadPage('profile');
-    }
-
-    initNavigation() {
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const page = btn.dataset.page;
-                this.loadPage(page);
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
     }
 
     async loadPage(page) {
         this.currentPage = page;
         const content = document.getElementById('contentArea');
         const title = document.getElementById('pageTitle');
+
+        document.querySelectorAll('.menu-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.page === page) {
+                link.classList.add('active');
+            }
+        });
 
         switch (page) {
             case 'profile':
@@ -47,8 +42,8 @@ class App {
     async renderDiary(container) {
         try {
             container.innerHTML = `<div id="diaryContainer">Загрузка...</div>`;
-            diary = new DiaryRenderer('diaryContainer');
-            await diary.render();
+            window.diary = new DiaryRenderer('diaryContainer');
+            await window.diary.render();
         } catch (error) {
             container.innerHTML = `<p style="color:#dc3545;">❌ Ошибка: ${error.message}</p>`;
         }
@@ -126,66 +121,91 @@ class App {
     }
 }
 
-let diary;
 let app;
 
 // ========================================
-// ПЕРЕТАСКИВАНИЕ (ПОЛНАЯ СВОБОДА)
+// ПЕРЕТАСКИВАНИЕ (С СОХРАНЕНИЕМ ПОЗИЦИИ)
 // ========================================
 
 function enableDragAndDrop() {
     console.log('🔄 enableDragAndDrop вызван');
 
-    const handles = document.querySelectorAll('.drag-handle');
-    if (handles.length === 0) {
-        console.log('⚠️ Ручки не найдены, ждём...');
+    const elements = document.querySelectorAll('.draggable-element');
+    if (elements.length === 0) {
+        console.log('⚠️ Элементы не найдены, ждём...');
         setTimeout(enableDragAndDrop, 300);
         return;
     }
 
-    console.log('🔧 Найдено ручек:', handles.length);
+    console.log('🔧 Найдено элементов:', elements.length);
 
-    handles.forEach(el => {
-        const newEl = el.cloneNode(true);
-        el.parentNode.replaceChild(newEl, el);
-    });
-
-    const newHandles = document.querySelectorAll('.drag-handle');
     let draggedEl = null;
     let offsetX = 0;
     let offsetY = 0;
+    let currentX = 0;
+    let currentY = 0;
 
-    newHandles.forEach(handle => {
-        handle.addEventListener('mousedown', function (e) {
-            const isEditMode = document.querySelector('.draggable-element.editing') !== null;
-            if (!isEditMode) {
-                console.log('⚠️ Режим редактирования выключен — перетаскивание запрещено');
+    // Удаляем старые обработчики
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+
+    elements.forEach(el => {
+        // Удаляем старый обработчик, если есть
+        if (el._dragHandler) {
+            el.removeEventListener('mousedown', el._dragHandler);
+        }
+
+        const handler = function (e) {
+            if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) {
                 return;
             }
 
+            const isEditMode = document.querySelector('.draggable-element.editing') !== null;
+            if (!isEditMode) return;
+
             e.preventDefault();
-            draggedEl = this.closest('.draggable-element');
-            if (!draggedEl) return;
+            draggedEl = this;
+
+            // ПОЛУЧАЕМ ТЕКУЩУЮ ПОЗИЦИЮ ИЗ TRANSFORM
+            const transform = draggedEl.style.transform;
+            const match = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+            if (match) {
+                currentX = parseFloat(match[1]) || 0;
+                currentY = parseFloat(match[2]) || 0;
+            } else {
+                currentX = 0;
+                currentY = 0;
+            }
 
             const rect = draggedEl.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
 
             draggedEl.style.cursor = 'grabbing';
-            draggedEl.style.zIndex = '9999';
             draggedEl.classList.add('dragging');
+            draggedEl.style.zIndex = '9999';
+            draggedEl.style.outline = '3px solid #4CAF50';
+            draggedEl.style.outlineOffset = '3px';
+            draggedEl.style.boxShadow = '0 0 30px rgba(76, 175, 80, 0.3)';
 
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
             console.log('🖱️ Перетаскивание начато:', draggedEl.id || draggedEl.dataset.element);
-        });
+            console.log('  текущая позиция:', currentX, currentY);
+        };
+
+        el._dragHandler = handler;
+        el.addEventListener('mousedown', handler);
     });
 
     function onMove(e) {
         if (!draggedEl) return;
 
         const isEditMode = document.querySelector('.draggable-element.editing') !== null;
-        if (!isEditMode) return;
+        if (!isEditMode) {
+            finishDrag();
+            return;
+        }
 
         const parent = draggedEl.parentElement;
         if (!parent) return;
@@ -193,23 +213,38 @@ function enableDragAndDrop() {
         const parentRect = parent.getBoundingClientRect();
         const elRect = draggedEl.getBoundingClientRect();
 
-        // ПОЛНАЯ СВОБОДА ПЕРЕМЕЩЕНИЯ
-        let x = e.clientX - parentRect.left - offsetX;
-        let y = e.clientY - parentRect.top - offsetY;
+        // Вычисляем НОВОЕ смещение относительно НАЧАЛЬНОЙ позиции
+        let deltaX = e.clientX - parentRect.left - offsetX;
+        let deltaY = e.clientY - parentRect.top - offsetY;
 
-        // ❌ НЕТ ОГРАНИЧЕНИЙ — можно двигать куда угодно
-        // x = Math.max(0, Math.min(x, parentRect.width - elRect.width));
-        // y = Math.max(0, Math.min(y, parentRect.height - elRect.height));
-
-        draggedEl.style.transform = `translate(${x}px, ${y}px)`;
+        // Применяем transform с сохранением текущей позиции
+        draggedEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
         draggedEl.style.position = 'relative';
     }
 
     function onUp(e) {
+        finishDrag();
+    }
+
+    function finishDrag() {
         if (draggedEl) {
             draggedEl.style.cursor = '';
             draggedEl.classList.remove('dragging');
             draggedEl.style.zIndex = '';
+            draggedEl.style.outline = '';
+            draggedEl.style.outlineOffset = '';
+            draggedEl.style.boxShadow = '';
+
+            // СОХРАНЯЕМ ПОЗИЦИЮ
+            const id = draggedEl.id || draggedEl.dataset.element;
+            const transform = draggedEl.style.transform;
+            const match = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+            if (match && id) {
+                const x = parseFloat(match[1]);
+                const y = parseFloat(match[2]);
+                console.log(`💾 Позиция ${id}: (${x}, ${y})`);
+            }
+
             console.log('🖱️ Перетаскивание завершено');
         }
         draggedEl = null;
@@ -218,28 +253,31 @@ function enableDragAndDrop() {
     }
 }
 
+// ========================================
+// РЕЖИМ РЕДАКТИРОВАНИЯ
+// ========================================
+
 function toggleEditModeGlobal() {
     console.log('🔄 toggleEditModeGlobal вызван');
 
     const elements = document.querySelectorAll('.draggable-element');
-    const handles = document.querySelectorAll('.drag-handle');
     const grid = document.getElementById('editGrid');
     const exitBtn = document.getElementById('exitEditBtn');
 
     const isEditMode = document.querySelector('.draggable-element.editing') !== null;
 
     if (isEditMode) {
-        // ВЫКЛЮЧАЕМ
-        elements.forEach(el => el.classList.remove('editing'));
-        handles.forEach(h => h.style.display = 'none');
+        elements.forEach(el => {
+            el.classList.remove('editing');
+        });
         if (grid) { grid.classList.remove('active'); grid.style.display = 'none'; }
         if (exitBtn) exitBtn.style.display = 'none';
         document.body.style.overflow = '';
         console.log('🔒 Режим редактирования выключен');
     } else {
-        // ВКЛЮЧАЕМ
-        elements.forEach(el => el.classList.add('editing'));
-        handles.forEach(h => h.style.display = 'flex');
+        elements.forEach(el => {
+            el.classList.add('editing');
+        });
         if (grid) { grid.style.display = 'block'; grid.classList.add('active'); }
         if (exitBtn) exitBtn.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -249,19 +287,13 @@ function toggleEditModeGlobal() {
     }
 }
 
+window.toggleEditModeGlobal = toggleEditModeGlobal;
+
+// ========================================
+// ИНИЦИАЛИЗАЦИЯ
+// ========================================
+
 document.addEventListener('DOMContentLoaded', function () {
-    app = new App();
-
-    const toggleBtn = document.getElementById('editToggleBtn');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleEditModeGlobal);
-        console.log('✅ Кнопка карандаша подключена');
-    }
-
-    const exitBtn = document.getElementById('exitEditBtn');
-    if (exitBtn) {
-        exitBtn.addEventListener('click', toggleEditModeGlobal);
-    }
+    window.app = new App();
+    console.log('✅ app.js загружен!');
 });
-
-console.log('✅ app.js загружен!');
