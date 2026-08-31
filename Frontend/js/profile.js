@@ -192,11 +192,11 @@ class ProfileRenderer {
                 </div>
 
                 <!-- КНОПКА ПЕРЕКЛЮЧЕНИЯ РЕЖИМА ИНТЕРФЕЙСА -->
-                <div class="interface-edit-section">
-                    <button class="edit-layout-btn" id="editLayoutBtn">
-                        🏛️ Расположение классического интерфейса
-                    </button>
-                </div>
+                    <div class="interface-edit-section">
+                        <button class="edit-layout-btn" id="editLayoutBtn" style="display:none;">
+                            🏛️ Расположение классического интерфейса
+                        </button>
+                    </div>
             </div>
         `;
     }
